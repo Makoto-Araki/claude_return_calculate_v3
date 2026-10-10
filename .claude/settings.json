@@ -1,5 +1,9 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(uvx pip-audit *)",
+      "Bash(uv export *)"
+    ],
     "ask": [
       "Bash(git commit)",
       "Bash(git commit *)",

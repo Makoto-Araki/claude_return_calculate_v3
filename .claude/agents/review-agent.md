@@ -15,7 +15,7 @@ tools: Read, Grep, Glob, Bash
 
 - ファイルの作成・編集・削除は行わない。
 - コミット、プッシュ、PR 作成は行わない。
-- Bash は読み取りと検証のコマンドに限る（pytest、ruff check、ruff format --check、mypy、git diff、git status）。ruff の `--fix` や `format`（適用）は使わない。
+- Bash は読み取りと検証のコマンドに限る（pytest、ruff check、ruff format --check、mypy、git diff、git status、pip-audit）。ruff の `--fix` や `format`（適用）は使わない。
 
 ## 確認する観点
 
@@ -29,6 +29,14 @@ tools: Read, Grep, Glob, Bash
 - 丸めのテストが、`round()` の偶数丸めと `ROUND_HALF_UP` を区別できる値になっているか。
 - 1テスト1観点で、名前から内容が分かるか。
 
+セキュリティ:
+- 入力検証の漏れがないか。正の整数以外（0、負数、小数、文字列、空、欠落）が、仕様どおり FastAPI 標準の 422 になるか。
+- 入力値に上限がなく、巨大な整数で CPU・メモリを過剰に消費したり、整数変換の桁数制限（`ValueError`）などの未処理例外で 500 エラーになる経路がないか。仕様上は 422 で返すべきものが 500 になっていないかを見る。
+- エラーレスポンスに、スタックトレース、内部パス、例外メッセージなどの内部情報が出ていないか。
+- `eval` / `exec` / `subprocess` / `pickle`、外部入力を使ったファイル・ネットワークアクセスなど、危険な処理がないか。
+- 新しい依存パッケージが追加されていないか。追加がある場合は、必要性と既知の脆弱性の有無を指摘する。
+- Ruff の `S` ルール（flake8-bandit）の指摘を、`ruff check` の結果から確認する。`# noqa: S...` で抑止している箇所があれば、理由が妥当かを見る。
+
 実装の質:
 - 期待値の決め打ちや、テスト固有の分岐がないか。
 - 型ヒントがあり、`float` と `int` の返し分けが仕様どおりか。
@@ -41,6 +49,8 @@ tools: Read, Grep, Glob, Bash
 1. CLAUDE.md を読み、仕様を確認する。
 2. 対象のテスト `tests/unit/test_<endpoint>.py` と実装 `app/router/<endpoint>.py` を読む。
 3. CLAUDE.md「使用コマンド」の pytest（tests/unit/ 全体）、ruff check、ruff format --check、mypy を実行し、結果を確認する。
+   - 続けて `git diff main --name-only` と `git status --short` で、`pyproject.toml` または `uv.lock` が変更されているかを確認する。
+   - 変更されている場合のみ、CLAUDE.md「使用コマンド」の `pip-audit` を実行する。変更されていなければ、実行せず「依存変更なし。pip-audit は省略」と報告する。
 4. 上記の観点で指摘をまとめる。
 
 ## 報告
@@ -49,5 +59,9 @@ tools: Read, Grep, Glob, Bash
 - 対象（ファイルと行）
 - 内容と理由（仕様のどの記述に反するか）
 - 差し戻し先（test-agent / implement-agent）
+
+`pip-audit` で脆弱性が見つかった場合は、パッケージ名・バージョン・脆弱性 ID を書き、差し戻し先は implement-agent とする（依存の変更は implement-agent が行う）。
+
+依存ファイルを変更していないのに `pip-audit` が失敗した場合は、新規に公開された脆弱性の可能性が高い。この場合は「要修正」の指摘にせず、指摘とは別に「依存の脆弱性（今回の変更と無関係）」として報告し、総合判定には含めない。
 
 最後に、手順3の各コマンドの結果と、総合判定（承認 / 要修正）を書く。指摘がなければ、その旨と確認した範囲を明記する。
