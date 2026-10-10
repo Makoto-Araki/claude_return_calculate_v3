@@ -29,7 +29,7 @@ target-version = "py312"
 line-length = 88
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "D"]
+select = ["E", "F", "I", "N", "UP", "B", "D", "S"]
 
 ignore = [
     "D400",  # 日本語の句点「。」を終端記号として認識しないため除外
@@ -40,6 +40,7 @@ convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
 "**/__init__.py" = ["D104"]  # 空のパッケージ初期化ファイルは docstring 不要
+"tests/**" = ["S101"]  # pytest は assert 文で検証するため許可
 
 [tool.mypy]
 python_version = "3.12"
