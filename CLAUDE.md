@@ -101,6 +101,7 @@ uv.lock
 app/
     __init__.py
     main.py
+    params.py
     router/
         __init__.py
         add.py
