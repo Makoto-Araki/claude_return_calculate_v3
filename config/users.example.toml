@@ -1,0 +1,13 @@
+# ユーザーと API キーの設定の雛形。
+# 実際のキーは config/users.toml に書き、コミットしない。
+# name と api_key は空でない文字列で、ユーザー間で重複させない。
+# api_key は ASCII の文字列にする。ASCII 以外の文字を含むキーは、
+# HTTP ヘッダーの復号の都合で、設定しても一致しない。
+
+[[users]]
+name = "alice"
+api_key = "replace-with-your-secret-key"
+
+[[users]]
+name = "bob"
+api_key = "replace-with-another-secret-key"
