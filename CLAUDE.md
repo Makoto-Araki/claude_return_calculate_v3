@@ -46,9 +46,72 @@
 }
 
 {
-    "detail": [] # detail は FastAPI 標準の検証エラー配列
+    "detail": [] # 422。detail は FastAPI 標準の検証エラー配列
+}
+
+{
+    "detail": "Invalid API key" # 401。detail は文字列
+}
+
+{
+    "detail": "Rate limit exceeded" # 429。detail は文字列。Retry-After ヘッダーを付ける
 }
 ```
+
+## 認証とレート制限
+
+4つの計算エンドポイント（`add` / `subtract` / `multiply` / `divide`）すべてに、APIキー認証とユーザーごとのレート制限をかける。レート制限が成り立つかを確かめる実験である。
+
+### 処理順序
+
+1. 認証（失敗なら 401）
+2. レート制限（超過なら 429）
+3. 入力検証（失敗なら 422）
+
+- 認証に成功したリクエストは、422 になる場合も 1 回として数える。認証に失敗したリクエストは数えない。
+- 認証とレート制限は、FastAPI の依存関係（`Depends`）として実装する。エンドポイント本体のコードは変えない。
+- 未認証で不正な入力（例: `a=0`）を送ったら 401、レート制限の超過中に不正な入力を送ったら 429 になる（422 にならない）。
+
+### 認証
+
+- 認証情報は、リクエストヘッダー `X-API-Key` で渡す。
+- キーは設定ファイルのユーザーと 1 対 1 で対応し、キーからユーザーを特定する。
+- ヘッダーがない場合も、キーが一致しない場合も、同じ 401 を返す（本文は `{"detail": "Invalid API key"}`）。両者を区別しない。
+- キーの比較は、タイミング攻撃を避けるため `hmac.compare_digest` を使う。
+- キーを、ログ、レスポンス本文、エラーメッセージに出さない。
+
+### ユーザーとキーの管理
+
+- 設定ファイルは TOML 形式で、`config/users.toml` に置く。環境変数 `USERS_CONFIG_PATH` で場所を上書きできる。
+- 形式は次のとおり。`name` と `api_key` は文字列で、どちらもユーザー間で重複させない。
+
+```toml
+[[users]]
+name = "alice"
+api_key = "dummy-key-for-alice"
+```
+
+- 設定ファイルが見つからない、形式が不正、`name` または `api_key` が重複している場合は、起動時にエラーで止める（リクエスト時に 500 にしない）。
+- 実際のキーを含む `config/users.toml` は Git にコミットしない（`.gitignore` に入れる）。リポジトリには、キーを含まない雛形 `config/users.example.toml` だけを置く。
+- テストは、実際の設定ファイルを読まない。ダミーのキーを使った設定を、テストごとに注入する。
+
+### レート制限
+
+- 方式は固定ウィンドウで、1 ユーザーにつき 1 分あたり 60 回まで。
+- ウィンドウは、時計の分の区切り（UNIX 時間を 60 で割った商）で決める。
+- 1 ウィンドウ内の 61 回目以降のリクエストは、ウィンドウが終わるまで 429 を返す。制限は一時的なもので、次のウィンドウで自動的に解除される。
+- 429 には、ウィンドウが終わるまでの残り秒数を `Retry-After` ヘッダーに付ける（切り上げた整数で、最小 1）。
+- すべてのエンドポイントを 1 回として数える（重みは付けない）。
+- カウントはユーザーごとに独立させ、他のユーザーに影響しない。
+- カウントはプロセス内のメモリに持つ。再起動で消え、複数プロセス間では共有しない。古いウィンドウのカウントは残さない。
+- カウントの更新は、同時アクセスでずれないよう、排他制御する。
+- 現在時刻は差し替えられる設計にする。テストでは時計を進めて検証し、実時間を待たない。
+- テストは、カウントの状態を各テストの前にリセットする。
+
+### 範囲外
+
+- TLS は使わず、HTTP のままにする（実験のため。キーは平文で流れる）。
+- 429 以外の制限（ブロックなど）、ユーザーごとの上限の違い、エンドポイントごとの重み、カウントの永続化は扱わない。
 
 ## 開発環境
 
@@ -59,6 +122,7 @@
 
 - TDD で進める（テストエージェント → 実装エージェント → レビューエージェント）
 - エンドポイントごとの進め方は `/tdd <エンドポイント名>` スキルに定める（`.claude/skills/tdd/SKILL.md`）
+- エンドポイントではない部品（認証、レート制限のカウンターなど）の進め方は `/tdd-component <部品名>` スキルに定める（`.claude/skills/tdd-component/SKILL.md`）。エージェントと周回のルールは `/tdd` と同じ
 - 各エージェントの定義は `.claude/agents/` に置く
 - 依存パッケージを追加・更新した場合（`pyproject.toml` や `uv.lock` を変更した場合）は、`pip-audit` を実行して既知の脆弱性がないことを確認する。脆弱性が見つかった場合は、作業を止めて報告する
 - 新しい脆弱性の公開により、コードを変えなくても CI の `pip-audit` が失敗することがある。その場合は、該当パッケージの更新を別の作業として扱う
@@ -90,6 +154,8 @@
     skills/
         tdd/
             SKILL.md
+        tdd-component/
+            SKILL.md
     settings.json
 .devcontainer/
     devcontainer.json
@@ -102,10 +168,14 @@ CLAUDE.md
 README.md
 pyproject.toml
 uv.lock
+config/
+    users.example.toml
 app/
     __init__.py
     main.py
     params.py
+    auth.py
+    rate_limit.py
     router/
         __init__.py
         add.py
@@ -118,7 +188,12 @@ tests/
         test_subtract.py
         test_multiply.py
         test_divide.py
+        test_auth.py
+        test_rate_counter.py
+        test_rate_limit.py
 ```
+
+`config/`、`app/auth.py`、`app/rate_limit.py`、`tests/unit/test_auth.py`、`tests/unit/test_rate_counter.py`、`tests/unit/test_rate_limit.py` は、認証とレート制限の実装で作る（`/tdd-component` で進める）。
 
 ## 使用ツール
 
