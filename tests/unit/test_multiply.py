@@ -7,9 +7,9 @@ from app.main import app
 
 
 @pytest.fixture
-def client() -> TestClient:
-    """テスト用の HTTP クライアントを返す。"""
-    return TestClient(app)
+def client(api_key: str) -> TestClient:
+    """有効な X-API-Key を付けたテスト用の HTTP クライアントを返す。"""
+    return TestClient(app, headers={"X-API-Key": api_key})
 
 
 def test_multiply_returns_product_with_200(client: TestClient) -> None:
