@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from app.rate_limit import RATE_LIMIT, WINDOW_SECONDS, RateCounter
+from app.rate_counter import RATE_LIMIT, WINDOW_SECONDS, RateCounter
 
 
 class FakeClock:

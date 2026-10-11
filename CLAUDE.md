@@ -178,6 +178,7 @@ app/
     main.py
     params.py
     auth.py
+    rate_counter.py
     rate_limit.py
     router/
         __init__.py
@@ -196,7 +197,7 @@ tests/
         test_rate_limit.py
 ```
 
-`config/`、`app/auth.py`、`app/rate_limit.py`、`tests/unit/test_auth.py`、`tests/unit/test_rate_counter.py`、`tests/unit/test_rate_limit.py` は、認証とレート制限の実装で作る（`/tdd-component` で進める）。
+`config/`、`app/auth.py`、`app/rate_counter.py`（カウンター。FastAPI を使わない）、`app/rate_limit.py`（カウンターを使う依存関係と 429）、`tests/unit/test_auth.py`、`tests/unit/test_rate_counter.py`、`tests/unit/test_rate_limit.py` は、認証とレート制限の実装で作る（`/tdd-component` で進める）。
 
 ## 使用ツール
 

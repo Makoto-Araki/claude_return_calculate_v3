@@ -14,14 +14,16 @@ disable-model-invocation: true
 | 部品 | 内容 | テスト | 実装 | テストの水準 |
 | ---- | ---- | ------ | ---- | ------------ |
 | `auth` | 設定ファイルの読み込み、`X-API-Key` の検証、401 | `tests/unit/test_auth.py` | `app/auth.py` | 設定の読み込みは単体、401 は `TestClient` |
-| `rate-counter` | 時計を注入できる、ユーザーごとの固定ウィンドウのカウンター | `tests/unit/test_rate_counter.py` | `app/rate_limit.py`（カウンター） | 単体（HTTP を通さない） |
-| `rate-limit` | カウンターを使った依存関係、429、`Retry-After`、処理順序 | `tests/unit/test_rate_limit.py` | `app/rate_limit.py`（依存関係）、`app/main.py` | `TestClient` |
+| `rate-counter` | 時計を注入できる、ユーザーごとの固定ウィンドウのカウンター | `tests/unit/test_rate_counter.py` | `app/rate_counter.py` | 単体（HTTP を通さない） |
+| `rate-limit` | `app/rate_counter.py` のカウンターを使った依存関係、429、`Retry-After`、処理順序 | `tests/unit/test_rate_limit.py` | `app/rate_limit.py`（新規）、`app/main.py` | `TestClient` |
+
+テストと実装のファイル名は、1 対 1 に対応させる（`app/<名前>.py` と `tests/unit/test_<名前>.py`）。
 
 ## 前提の確認
 
 - `$ARGUMENTS` が `auth`、`rate-counter`、`rate-limit` のいずれかであること。そうでなければ、作業を始めず、ユーザーに確認する。
-- 対象のテストや実装がすでにある場合は、上書きしてよいかをユーザーに確認する。ただし `rate-limit` が `app/rate_limit.py` に追記するのは、`rate-counter` で作った既存部分の上書きではないので、確認は不要。
-- 依存する部品が済んでいること。`rate-counter` と `rate-limit` は `auth` の後、`rate-limit` は `rate-counter` の後に進める（`app/auth.py`、`app/rate_limit.py` の有無で確認する）。済んでいなければ、作業を始めず、ユーザーに確認する。
+- 対象のテストや実装がすでにある場合は、上書きしてよいかをユーザーに確認する。
+- 依存する部品が済んでいること。`rate-counter` と `rate-limit` は `auth` の後、`rate-limit` は `rate-counter` の後に進める（`app/auth.py`、`app/rate_counter.py` の有無で確認する）。済んでいなければ、作業を始めず、ユーザーに確認する。
 - エージェントは別のエージェントを呼べないため、この手順はメインのセッションが順番に呼び出して進める。
 - コミット、プッシュ、PR 作成は行わない（CLAUDE.md の Git 運用）。変更は作業ツリーに残す。
 
