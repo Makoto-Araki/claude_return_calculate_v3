@@ -187,6 +187,8 @@ app/
         multiply.py
         divide.py
 tests/
+    conftest.py
+    fake_clock.py
     unit/
         test_add.py
         test_subtract.py

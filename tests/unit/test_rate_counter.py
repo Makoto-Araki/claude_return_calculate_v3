@@ -9,18 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 
 from app.rate_counter import RATE_LIMIT, WINDOW_SECONDS, RateCounter
-
-
-class FakeClock:
-    """テストから進められる、差し替え用の時計。"""
-
-    def __init__(self, now: float = 0.0) -> None:
-        """現在時刻（UNIX 時間の秒）の初期値を設定する。"""
-        self.now = now
-
-    def __call__(self) -> float:
-        """現在時刻を返す。"""
-        return self.now
+from tests.fake_clock import FakeClock
 
 
 @pytest.fixture
