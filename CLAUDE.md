@@ -220,9 +220,12 @@ tests/
 - 関数名はエンドポイント名と一致させる（例: `divide`）
 - テスト関数名は `test_` で始め、観点が分かる名前にする（例: `test_divide_by_zero_returns_422`）
 - 全ての関数に型ヒントを付ける（MyPy の strict で検証する）
-- `app/` と `tests/` 配下のモジュール・関数・fixture に docstring を付ける（NumPy スタイル、日本語）。テストの docstring は1行で、検証する観点を書く
+- `app/` と `tests/` 配下のモジュール・クラス・関数・fixture に docstring を付ける（NumPy スタイル、日本語）。書き方は場所によって次のとおり分ける
+  - `app/`: 要約の 1 行に加えて、引数・戻り値・例外があれば `Parameters` / `Returns` / `Raises` などのセクションを書く
+  - `tests/` のテスト関数、fixture、そのテストファイルの中だけで使うヘルパー: 1 行だけ。テスト関数は検証する観点、fixture とヘルパーは役割を書く（セクションは書かない）
+  - `tests/` の中で、複数のテストファイルから import して共有するヘルパー（例: `tests/fake_clock.py`）: `app/` と同じく、必要な NumPy セクションを書く
 - docstring には実装の言い換えではなく、仕様上の意味を書く（例: divide は丸め方と、割り切れる場合の型）
-- docstring の有無は Ruff の `D` ルールで検証する（設定は `pyproject.toml`）
+- docstring の有無と体裁は Ruff の `D` ルールで検証する（設定は `pyproject.toml`）。セクションを書くべきか（`Parameters` / `Returns` の有無）は Ruff では検証されないため、レビューで確認する
 
 ## 使用コマンド
 
